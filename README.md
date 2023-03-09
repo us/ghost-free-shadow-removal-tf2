@@ -1,5 +1,7 @@
 # Towards Ghost-free Shadow Removal 
 
+**Note**: Migrated to TF2.
+
 This repo contains the code and results of the AAAI 2020 paper:
 
 <i><b> [Towards Ghost-free Shadow Removal via <br> Dual Hierarchical Aggregation Network and Shadow Matting GAN ](https://arxiv.org/abs/1911.08718)</b></i><br>

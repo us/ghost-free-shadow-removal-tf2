@@ -1,5 +1,7 @@
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+# import tensorflow.contrib.slim as slim
+import tf_slim as slim
+
 import numpy as np
 import os,time,cv2,scipy.io,random
 from PIL import Image
@@ -14,7 +16,7 @@ IMG_EXTENSIONS = [
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
-def prepare_data(train_path, stage=['train_A']):
+def prepare_data(train_path, stage=['test_A']):
     input_names=[]
     image1=[]
     for dirname in train_path:
@@ -87,7 +89,7 @@ def parpare_image_syn(val_path,sz=(640,480),da=False,stage='train_shadow_free'):
   imw,imh = sz
   iminput = encode_image(val_path,(imw,imh))
   val_mask_name = val_path.split('/')[-1].split('_')[-1]
-  gtmask = encode_image(val_path.replace(stage,'train_B').replace(val_path.split('/')[-1],val_mask_name),(imw,imh))
+  gtmask = encode_image(val_path.replace(stage,'test_B').replace(val_path.split('/')[-1],val_mask_name),(imw,imh))
 
   val_im_name = '_'.join(val_path.split('/')[-1].split('_')[0:-1])+'.jpg'
   imtarget = encode_image(val_path.replace(stage,'shadow_free').replace(val_path.split('/')[-1],val_im_name),(imw,imh))
@@ -110,7 +112,7 @@ def parpare_image_syn(val_path,sz=(640,480),da=False,stage='train_shadow_free'):
 
 #### LOSSES
 def compute_l1_loss(input, output):
-    return tf.reduce_mean(tf.abs(input-output))
+    return tf.reduce_mean(input_tensor=tf.abs(input-output))
 
 def compute_percep_loss(input, output, reuse=False, vgg_19_path='None'):
     vgg_real=build_vgg19(output*255.0,vgg_path=vgg_19_path,reuse=reuse)

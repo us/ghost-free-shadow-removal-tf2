@@ -44,10 +44,10 @@ else:
 train_real_root=[ARGS.data_dir]
 
 # set up the model and define the graph
-with tf.variable_scope(tf.get_variable_scope()):
-    input=tf.placeholder(tf.float32,shape=[None,None,None,3])
-    target=tf.placeholder(tf.float32,shape=[None,None,None,3])
-    mask = tf.placeholder(tf.float32,shape=[None,None,None,1])
+with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
+    input=tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,3])
+    target=tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,3])
+    mask = tf.compat.v1.placeholder(tf.float32,shape=[None,None,None,1])
 
     # build the model
     # I_s = I_ns * I_sm
@@ -56,50 +56,50 @@ with tf.variable_scope(tf.get_variable_scope()):
     # Perceptual Loss
     loss_percep = compute_percep_loss(shadowed_image, target, vgg_19_path=vgg_19_path)
     # Adversarial Loss
-    with tf.variable_scope("discriminator"):
+    with tf.compat.v1.variable_scope("discriminator"):
         predict_real,pred_real_dict = build_discriminator(input,target)
-    with tf.variable_scope("discriminator", reuse=True):
+    with tf.compat.v1.variable_scope("discriminator", reuse=True):
         predict_fake,pred_fake_dict = build_discriminator(input,shadowed_image)
 
-    d_loss=(tf.reduce_mean(-(tf.log(predict_real + EPS) + tf.log(1 - predict_fake + EPS)))) * 0.5
-    g_loss=tf.reduce_mean(-tf.log(predict_fake + EPS))
+    d_loss=(tf.reduce_mean(input_tensor=-(tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)))) * 0.5
+    g_loss=tf.reduce_mean(input_tensor=-tf.math.log(predict_fake + EPS))
 
     loss = loss_percep
 
-train_vars = tf.trainable_variables()
+train_vars = tf.compat.v1.trainable_variables()
 d_vars = [var for var in train_vars if 'discriminator' in var.name]
 g_vars = [var for var in train_vars if 'g_' in var.name]
-g_opt=tf.train.AdamOptimizer(learning_rate=0.0002).minimize(loss*100+g_loss, var_list=g_vars) # optimizer for the generator
-d_opt=tf.train.AdamOptimizer(learning_rate=0.0001).minimize(d_loss,var_list=d_vars) # optimizer for the discriminator
+g_opt=tf.compat.v1.train.AdamOptimizer(learning_rate=0.0002).minimize(loss*100+g_loss, var_list=g_vars) # optimizer for the generator
+d_opt=tf.compat.v1.train.AdamOptimizer(learning_rate=0.0001).minimize(d_loss,var_list=d_vars) # optimizer for the discriminator
 
-for var in tf.trainable_variables():
+for var in tf.compat.v1.trainable_variables():
     print("Listing trainable variables ... ")
     print(var)
 
-saver=tf.train.Saver(max_to_keep=None)
+saver=tf.compat.v1.train.Saver(max_to_keep=None)
 
 if not os.path.isdir(task):
     os.makedirs(task)
 
 ######### Session #########
-sess=tf.Session()
-sess.run(tf.global_variables_initializer())
+sess=tf.compat.v1.Session()
+sess.run(tf.compat.v1.global_variables_initializer())
 ckpt=tf.train.get_checkpoint_state(task)
 print("[i] contain checkpoint: ", ckpt)
 
 if ckpt and continue_training:
-    saver_restore=tf.train.Saver([var for var in tf.trainable_variables()])
+    saver_restore=tf.compat.v1.train.Saver([var for var in tf.compat.v1.trainable_variables()])
     print('loaded '+ckpt.model_checkpoint_path)
     saver_restore.restore(sess,ckpt.model_checkpoint_path)
 # test doesn't need to load discriminator
 elif not is_training:
-    saver_restore=tf.train.Saver([var for var in tf.trainable_variables() if 'discriminator' not in var.name])
+    saver_restore=tf.compat.v1.train.Saver([var for var in tf.compat.v1.trainable_variables() if 'discriminator' not in var.name])
     print('loaded '+ckpt.model_checkpoint_path)
     saver_restore.restore(sess,ckpt.model_checkpoint_path)
 sys.stdout.flush()
 if is_training:
     # please follow the dataset directory setup in README
-    input_images_path=prepare_data(train_real_root,stage=['train_A']) # no reflection ground truth for real images
+    input_images_path=prepare_data(train_real_root,stage=['test_A']) # no reflection ground truth for real images
     print("[i] Total %d training images, first path of real image is %s." % (len(input_images_path), input_images_path[0]))
     
     num_train=len(input_images_path)
@@ -171,7 +171,7 @@ else:
     subtask=task.replace('/','_') + '_94' # if you want to save different testset separately
     for val_path in prepare_data([ARGS.data_dir],stage=['shadow_free']):
         bacid = os.path.splitext(os.path.basename(val_path))[0]
-        mask_dir = os.path.join(ARGS.data_dir,'train_B')
+        mask_dir = os.path.join(ARGS.data_dir,'test_B')
         # 100*80
         all_masks = random.sample([ os.path.join(mask_dir,x) for x in os.listdir(mask_dir) if os.path.isfile(os.path.join(mask_dir,x))],3)
         for mask_path in all_masks:
