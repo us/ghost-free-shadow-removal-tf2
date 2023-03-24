@@ -1,6 +1,7 @@
+import os
+
 import cv2
 import typer
-import os
 
 
 def widen_shadow(mask, pixel=5):

@@ -1,23 +1,20 @@
 from __future__ import division
-import os, time, cv2, scipy.io
-import tensorflow as tf
-import tensorflow.contrib.slim as slim
-import numpy as np
-import matplotlib.pyplot as plt
-from networks import build_discriminator
-from skimage.measure import compare_ssim as ssim
-from skimage.measure import compare_psnr as psnr
+
+import argparse
+import sys
+import time
+
+# import tensorflow.contrib.slim as slim
 from networks import *
 from utils import *
-import scipy.stats as st
-import argparse, sys
+tf.compat.v1.disable_eager_execution()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--task", default="pre-trained", help="path to folder containing the model")
 parser.add_argument("--data_dir", default="./Dataset/ISTD_Dataset/", help="path to real dataset")
 parser.add_argument("--save_model_freq", default=1, type=int, help="frequency to save model")
 parser.add_argument("--use_gpu", default=0, type=int, help="which gpu to use")
-parser.add_argument("--use_da", default=0.5, type=float, help="[0~1], the precentage of synthesized dataset")
+parser.add_argument("--use_da", default=1, type=float, help="[0~1], the precentage of synthesized dataset")
 parser.add_argument("--is_hyper", default=1, type=int, help="use hypercolumn or not")
 parser.add_argument("--is_training", default=1, help="training or testing")
 parser.add_argument("--continue_training", action="store_true",
@@ -32,8 +29,8 @@ current_best = 65535
 maxepoch = 151
 EPS = 1e-12
 channel = 64  # number of feature channels to build the model, set to 64
-vgg_19_path = scipy.io.loadmat('./Models/imagenet-vgg-verydeep-19.mat')
-
+# vgg_19_path = scipy.io.loadmat('./Models/imagenet-vgg-verydeep-19.mat')
+vgg_19_path = './Models/imagenet-vgg-verydeep-19.mat'
 test_w, test_h = 640, 480
 
 if ARGS.use_gpu < 0:
@@ -50,7 +47,7 @@ with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
     gtmask = tf.compat.v1.placeholder(tf.float32, shape=[None, None, None, 1])
 
     # build the model
-    shadow_free_image, predicted_mask = build_aggasatt_joint(input, channel, vgg_19_path=vgg_19_path)
+    shadow_free_image, predicted_mask = build_aggasatt_joint(input, channel)
 
     loss_mask = tf.reduce_mean(input_tensor=tf.keras.losses.binary_crossentropy(gtmask, tf.nn.sigmoid(predicted_mask)))
 
@@ -62,7 +59,8 @@ with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
     with tf.compat.v1.variable_scope("discriminator", reuse=True):
         predict_fake, pred_fake_dict = build_discriminator(input, shadow_free_image)
 
-    d_loss = (tf.reduce_mean(input_tensor=-(tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)))) * 0.5
+    d_loss = (tf.reduce_mean(
+        input_tensor=-(tf.math.log(predict_real + EPS) + tf.math.log(1 - predict_fake + EPS)))) * 0.5
     g_loss = tf.reduce_mean(input_tensor=-tf.math.log(predict_fake + EPS))
 
     loss = loss_percep * 0.2 + loss_mask
@@ -71,9 +69,9 @@ train_vars = tf.compat.v1.trainable_variables()
 d_vars = [var for var in train_vars if 'discriminator' in var.name]
 g_vars = [var for var in train_vars if 'g_' in var.name]
 g_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.0002).minimize(loss * 100 + g_loss,
-                                                              var_list=g_vars)  # optimizer for the generator
+                                                                        var_list=g_vars)  # optimizer for the generator
 d_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.0001).minimize(d_loss,
-                                                              var_list=d_vars)  # optimizer for the discriminator
+                                                                        var_list=d_vars)  # optimizer for the discriminator
 
 for var in tf.compat.v1.trainable_variables():
     print("Listing trainable variables ... ")
@@ -96,7 +94,8 @@ if ckpt and continue_training:
     saver_restore.restore(sess, ckpt.model_checkpoint_path)
 # test doesn't need to load discriminator
 elif not is_training:
-    saver_restore = tf.compat.v1.train.Saver([var for var in tf.compat.v1.trainable_variables() if 'discriminator' not in var.name])
+    saver_restore = tf.compat.v1.train.Saver(
+        [var for var in tf.compat.v1.trainable_variables() if 'discriminator' not in var.name])
     print('loaded ' + ckpt.model_checkpoint_path)
     saver_restore.restore(sess, ckpt.model_checkpoint_path)
 
@@ -108,7 +107,7 @@ if is_training:
     syn_images = prepare_data(train_real_root, stage=['synC'])
 
     print("[i] Total %d training images, first path of real image is %s." % (
-    len(input_images_path), input_images_path[0]))
+        len(input_images_path), input_images_path[0]))
 
     num_train = len(input_images_path) + len(syn_images)
     all_l = np.zeros(num_train, dtype=float)

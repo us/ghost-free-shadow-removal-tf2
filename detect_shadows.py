@@ -1,16 +1,16 @@
 from __future__ import division
-from deshadower import *
+
 import argparse
 import glob
-import numpy as np
-import os
+
+from PIL import Image
+
+from deshadower import *
 
 
-# unrar on mac
-# unrar x -o+ Samples.rar
 def prepare_image_from_filename(image_filename):
     img = cv2.imread(image_filename, -1)
-    return prep_image(img)
+    return prepare_image(img)
 
 
 def prepare_image(img, test_w=-1, test_h=-1):
@@ -36,8 +36,8 @@ if __name__ == '__main__':
 
     if not os.path.isdir(ARGS.result_dir):
         os.makedirs(ARGS.result_dir)
-
-    for image_filename in glob.glob(ARGS.input_dir + '/*.png'):
+    # png and jpg
+    for image_filename in glob.glob(ARGS.input_dir + '/*.png') + glob.glob(ARGS.input_dir + '/*.jpg'):
         img = cv2.imread(image_filename, -1)
         orig_img_x, orig_img_y = img.shape[1], img.shape[0]
         test_w = int(img.shape[1] * test_h / float(img.shape[0]))
@@ -47,15 +47,17 @@ if __name__ == '__main__':
             os.makedirs(ARGS.result_dir)
 
         if ARGS.result_dir == ARGS.input_dir:
-            mask_output_filename = os.path.join(ARGS.result_dir, os.path.basename(image_filename).split(".")[0] + "_mask." + os.path.basename(image_filename).split(".")[1])
+            mask_output_filename = os.path.join(ARGS.result_dir,
+                                                os.path.basename(image_filename).split(".")[0] + "_mask." +
+                                                os.path.basename(image_filename).split(".")[1])
         else:
-            mask_output_filename = os.path.join(ARGS.result_dir, os.path.basename(image_filename)) 
-        
+            mask_output_filename = os.path.join(ARGS.result_dir, os.path.basename(image_filename))
+
         mask_output = cv2.resize(mask, (orig_img_x, orig_img_y), cv2.INTER_CUBIC)
         cv2.imwrite(mask_output_filename, mask)
         print(mask_output_filename, "created.")
         with Image.open(mask_output_filename) as img:
-                # Resize image
-                img_resized = img.resize((orig_img_x, orig_img_y))
-                # Save resized image
-                img_resized.save(mask_output_filename)
+            # Resize image
+            img_resized = img.resize((orig_img_x, orig_img_y))
+            # Save resized image
+            img_resized.save(mask_output_filename)

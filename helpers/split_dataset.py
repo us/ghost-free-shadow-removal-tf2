@@ -34,4 +34,3 @@ for folder in folders:
         src_path = os.path.join(current_folder, image)
         dst_path = os.path.join(eval_folder, image)
         shutil.move(src_path, dst_path)
-

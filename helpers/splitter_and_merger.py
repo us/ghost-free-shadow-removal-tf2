@@ -1,8 +1,8 @@
+import os
 from typing import List
 
 import typer as typer
 from PIL import Image
-import os
 
 
 def split_image(image_path, output_folder, size):
